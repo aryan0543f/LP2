@@ -1,336 +1,384 @@
-# Kruskal's Algorithm — Minimum Spanning Tree (MST)
-# Greedy approach: always pick the smallest edge that doesn't form a cycle
+# Tic-Tac-Toe using A* Algorithm
+# Computer = X (goes first) | Player = O
+#
+# A* Formula:  f(n) = g(n) + h(n)
+#   g(n) = Minimax score   → exact cost from game-tree search
+#   h(n) = Heuristic score → counts lines that are one move from winning
+#   f(n) = total score     → computer picks the move with highest f(n)
+#
+# Board layout:
+#   0 | 1 | 2
+#   --+---+--
+#   3 | 4 | 5
+#   --+---+--
+#   6 | 7 | 8
 
-# ── 1. Find root of a vertex (with path compression) ─────────────────────────
-def find(parent, i):
-    if parent[i] != i:
-        parent[i] = find(parent, parent[i])   # path compression: flatten tree
-    return parent[i]
+# All 8 winning lines (3 rows + 3 cols + 2 diagonals)
+WIN_LINES = [
+    [0,1,2], [3,4,5], [6,7,8],
+    [0,3,6], [1,4,7], [2,5,8],
+    [0,4,8], [2,4,6]
+]
 
-# ── 2. Union: merge two components ───────────────────────────────────────────
-def union(parent, x, y):
-    parent[x] = y   # make root of x point to root of y
+# ── Print the board ───────────────────────────────────────────────────────────
+def print_board(board):
+    print()
+    for row in range(3):
+        r = row * 3
+        print(f"  {board[r]} | {board[r+1]} | {board[r+2]}")
+        if row < 2:
+            print("  --+---+--")
+    print()
 
-# ── 3. Kruskal's MST ──────────────────────────────────────────────────────────
-def kruskal(v, edges):
-    # Step 1: Sort all edges by weight (Greedy choice)
-    edges.sort(key=lambda x: x[2])
+# ── Check if someone has won ──────────────────────────────────────────────────
+def check_winner(board):
+    for a, b, c in WIN_LINES:
+        if board[a] == board[b] == board[c] != ' ':
+            return board[a]          # 'X' or 'O'
+    if ' ' not in board:
+        return 'Draw'
+    return None                      # game still on
 
-    # Step 2: Initialize each vertex as its own parent
-    # Use max vertex index + 1 to safely handle any vertex numbering
-    max_vertex = max(max(src, dst) for src, dst, _ in edges) if edges else v - 1
-    parent = list(range(max(v, max_vertex + 1)))
+# ── h(n): Heuristic — how close each side is to winning ──────────────────────
+def heuristic(board):
+    score = 0
+    for a, b, c in WIN_LINES:
+        line = [board[a], board[b], board[c]]
+        if line.count('X') == 2 and line.count(' ') == 1:
+            score += 10   # X is one step from winning → good for computer
+        if line.count('O') == 2 and line.count(' ') == 1:
+            score -= 10   # O is one step from winning → bad for computer
+    return score
 
-    result = []
-    cost   = 0
+# ── g(n): Minimax — explores full game tree to score a board state ────────────
+def minimax(board, depth, is_maximizing):
+    result = check_winner(board)
+    if result == 'X':    return 10 - depth   # faster win = higher score
+    if result == 'O':    return depth - 10   # faster loss = lower score
+    if result == 'Draw': return 0
 
-    for src, dst, w in edges:
-        root_u = find(parent, src)
-        root_v = find(parent, dst)
+    if is_maximizing:          # Computer (X) wants the highest score
+        best = -100
+        for i in range(9):
+            if board[i] == ' ':
+                board[i] = 'X'
+                best = max(best, minimax(board, depth + 1, False))
+                board[i] = ' '   # undo move
+        return best
+    else:                      # Player (O) wants the lowest score
+        best = 100
+        for i in range(9):
+            if board[i] == ' ':
+                board[i] = 'O'
+                best = min(best, minimax(board, depth + 1, True))
+                board[i] = ' '   # undo move
+        return best
 
-        # Step 3: Add edge only if it doesn't form a cycle
-        if root_u != root_v:
-            result.append((src, dst, w))
-            cost += w
-            union(parent, root_u, root_v)
+# ── A* move selection: pick move with highest f(n) = g(n) + h(n) ─────────────
+def best_move(board):
+    best_f    = -1000
+    best_pos  = None
 
-    print("\nEdges in Minimum Spanning Tree:")
-    for u, v, w in result:
-        print(f"  {u} -- {v}  ==  {w}")
-    print(f"Minimum Cost = {cost}")
+    for i in range(9):
+        if board[i] == ' ':
+            board[i] = 'X'                      # try the move
+            g = minimax(board, 0, False)         # g(n)
+            h = heuristic(board)                 # h(n)
+            f = g + h                            # f(n) = A* score
+            board[i] = ' '                       # undo the move
 
-vertices = int(input("Enter number of vertices: "))
-e        = int(input("Enter number of edges: "))
+            print(f"    pos {i}: g={g:+d}, h={h:+d}, f={f:+d}")
 
-edges = []
-print("Enter edges (u v weight):")
-for _ in range(e):
-    u, v, w = map(int, input().split())
-    edges.append([u, v, w])
+            if f > best_f:
+                best_f   = f
+                best_pos = i
 
-kruskal(vertices, edges)
+    return best_pos
+
+# ── Main game ─────────────────────────────────────────────────────────────────
+board = [' '] * 9
+
+print("===== TIC-TAC-TOE WITH A* =====")
+print("Computer = X  |  You = O")
+print_board(board)
+
+while True:
+    # Computer's turn
+    print("Computer is thinking...")
+    move = best_move(board)
+    board[move] = 'X'
+    print(f"  → Computer plays position {move}")
+    print_board(board)
+
+    result = check_winner(board)
+    if result:
+        print("Computer wins!" if result == 'X' else "It's a draw!")
+        break
+
+    # Player's turn
+    while True:
+        try:
+            move = int(input("Your move (0-8): "))
+            if 0 <= move <= 8 and board[move] == ' ':
+                board[move] = 'O'
+                break
+            print("Invalid or taken. Try again.")
+        except ValueError:
+            print("Enter a number 0-8.")
+
+    print_board(board)
+
+    result = check_winner(board)
+    if result:
+        print("You win!" if result == 'O' else "It's a draw!")
+        break
 # =============================================================================
-# PROBLEM STATEMENT:
-# Given a connected, undirected, weighted graph with V vertices and E edges,
-# find the Minimum Spanning Tree (MST) using Kruskal's algorithm and display
-# the selected edges along with the minimum total cost.
+# ## Summary
+# This Tic-Tac-Toe AI uses A* search (f(n) = g(n) + h(n)) to pick the best
+# move. The minimax() function calculates g(n) — the true cost from exploring
+# the full game tree. The heuristic() function calculates h(n) — an estimate
+# of how winning the position is. Combined, they guide the computer to choose
+# moves that are both strategically sound and promising.
+#
+# ## Deep Dive
+#
+# ### The Game State Representation
+# The board is a simple list of 9 cells, where board[0] is top-left and
+# board[8] is bottom-right:
+#   0 | 1 | 2
+#   --+---+--
+#   3 | 4 | 5
+#   --+---+--
+#   6 | 7 | 8
+#
+# WIN_LINES defines all 8 winning combinations — think of it as the rulebook.
+# Every check for a winner simply checks if any of these triplets all match.
+#
+# ### The Heuristic h(n) — "How Good Is This Position?"
+#
+#   def heuristic(board):
+#       score = 0
+#       for a, b, c in WIN_LINES:
+#           line = [board[a], board[b], board[c]]
+#           if line.count('X') == 2 and line.count(' ') == 1:
+#               score += 10   # X is one step from winning
+#           if line.count('O') == 2 and line.count(' ') == 1:
+#               score -= 10   # O is one step from winning
+#       return score
+#
+# This is a look-ahead estimate. If X has two in a row with one empty space,
+# that's worth +10 points — X is *almost* winning. If O has the same setup,
+# that's -10 — danger for the computer.
+#
+# Real-world analogy: Think of it like a chess player glancing at the board
+# and thinking "if I move my knight here, I'm threatening their queen" —
+# quick estimation without calculating every line of play.
+#
+# ### The Minimax g(n) — "What's The True Outcome?"
+#
+#   def minimax(board, depth, is_maximizing):
+#       if result == 'X': return 10 - depth   # faster win = higher score
+#       if result == 'O': return depth - 10   # faster loss = lower score
+#       if result == 'Draw': return 0
+#
+# This explores the complete game tree. If X wins at depth 3, the score is
+# 10 - 3 = 7. If X wins at depth 5, the score is 10 - 5 = 5. The computer
+# prefers faster victories.
+#   Maximizing (X): Wants the highest score — picks the best child
+#   Minimizing (O): Wants the lowest score — assumes opponent plays optimally
+#
+# Real-world analogy: This is like playing through every possible continuation
+# of a chess game to see who wins. The computer simulates: "If I play here,
+# and they play optimally, what happens?"
+#
+# ### A* Selection — Combining Both
+#
+#   def best_move(board):
+#       for i in range(9):
+#           if board[i] == ' ':
+#               board[i] = 'X'
+#               g = minimax(board, 0, False)   # true cost from minimax
+#               h = heuristic(board)           # estimated cost
+#               f = g + h                      # A* score
+#               board[i] = ' '                 # undo
+#
+# The key insight: g(n) is the ground truth from exhaustive search, while
+# h(n) is a quick heuristic. Together:
+#   f > 0  → position favors computer
+#   f < 0  → position favors player
+#   Higher f → better move for computer
+#
+# This makes the AI play strategically (it avoids positions that lead to
+# guaranteed loss) while also being opportunistic (it seizes near-winning
+# setups flagged by the heuristic).
+#
+# ### Example Trace
+# Imagine the computer evaluates position 4 (center):
+#   X | X | O
+#   --+---+--
+#   O | X |
+#   --+---+--
+#   O |   |
+#
+#   g = +8  (minimax finds winning line for X)
+#   h = +10 (X has 2 in row 0, ready to win)
+#   f = +18 ← Best move!
+#
+# The computer plays center, threatens the win, and forces the player to
+# block — demonstrating how A* combines "what will happen" with "how good
+# this looks right now."
 # =============================================================================
-
-# ── Input ─────────────────────────────────────────────────────────────────────
-#
-# --- Input 1: 4 vertices, 5 edges ---
-#
-#       10
-#   0 ────── 1
-#   |  \     |
-#  6|   5\   |15
-#   |     \  |
-#   2 ────── 3
-#       4
-#
-#   Enter number of vertices: 4
-#   Enter number of edges: 5
-#   Enter edges (u v weight):
-#   0 1 10
-#   0 2 6
-#   0 3 5
-#   1 3 15
-#   2 3 4
-#
-#   Edges in Minimum Spanning Tree:
-#     2 -- 3  ==  4
-#     0 -- 3  ==  5
-#     0 -- 1  ==  10
-#   Minimum Cost = 19
-#
-# ------------------------------------------------------------------
-#
-# --- Input 2: 5 vertices, 7 edges ---
-#
-#       2       3
-#   0 ────── 1 ────── 2
-#   |      / |        |
-#  6|    4/  |5      1|
-#   |  /     |        |
-#   3 ────── 4 ────── 2 (back to 2)
-#       3
-#
-#   Enter number of vertices: 5
-#   Enter number of edges: 7
-#   Enter edges (u v weight):
-#   0 1 2
-#   0 3 6
-#   1 2 3
-#   1 3 4
-#   1 4 5
-#   2 4 1
-#   3 4 3
-#
-#   Edges in Minimum Spanning Tree:
-#     2 -- 4  ==  1
-#     0 -- 1  ==  2
-#     3 -- 4  ==  3
-#     1 -- 2  ==  3
-#   Minimum Cost = 9
-#
-# ------------------------------------------------------------------
-#
-# --- Input 3: 6 vertices, 8 edges ---
-#
-#       4       2
-#   0 ────── 1 ────── 2
-#   |        |      / |
-#  3|       8|    5/  |6
-#   |        |  /     |
-#   3 ────── 4 ────── 5
-#       7        9
-#
-#   Enter number of vertices: 6
-#   Enter number of edges: 8
-#   Enter edges (u v weight):
-#   0 1 4
-#   0 3 3
-#   1 2 2
-#   1 4 8
-#   2 4 5
-#   2 5 6
-#   3 4 7
-#   4 5 9
-#
-#   Edges in Minimum Spanning Tree:
-#     1 -- 2  ==  2
-#     0 -- 3  ==  3
-#     0 -- 1  ==  4
-#     2 -- 4  ==  5
-#     2 -- 5  ==  6
-#   Minimum Cost = 20
-# ------------------------------------------------------------------
-#
-# --- Input 4: 7 vertices, 12 edges (a=0, b=1, c=2, d=3, e=4, f=5, g=6) ---
-#
-#   Graph from image:
-#       d(3) ──2── e(4)
-#      / |  \        \
-#     4  1   \        10
-#    /   |    \        \
-#  a(0)──2──b(1)──7──c(2)
-#    \       |  \       |
-#     5      8   4      6
-#      \     |    \     |
-#      f(5)──1──g(6)────┘
-#
-#   Enter number of vertices: 7
-#   Enter number of edges: 12
-#   Enter edges (u v weight):
-#   0 3 4
-#   0 1 2
-#   0 5 5
-#   3 4 2
-#   3 1 1
-#   4 1 3
-#   4 2 10
-#   1 2 7
-#   1 5 8
-#   1 6 4
-#   5 6 1
-#   6 2 6
-#
-#   Edges in Minimum Spanning Tree:
-#     5 -- 6  ==  1
-#     3 -- 1  ==  1
-#     3 -- 4  ==  2
-#     0 -- 1  ==  2
-#     4 -- 1  ==  3
-#     1 -- 6  ==  4
-#   Minimum Cost = 13
-# ------------------------------------------------------------------
-
+# PROGRAM: Tic-Tac-Toe using A* Algorithm (with Minimax)
 # =============================================================================
+#
 # THEORY:
 # -------
-# Minimum Spanning Tree (MST):
-#   - A spanning tree of a graph that connects ALL vertices with MINIMUM total
-#     edge weight and NO cycles.
-#   - For a graph with V vertices, MST has exactly V-1 edges.
+# A* Algorithm:
+#   - A* is an informed search algorithm that finds the optimal path.
+#   - It uses the evaluation function: f(n) = g(n) + h(n)
+#       g(n) = actual cost from start to current node (Minimax score here)
+#       h(n) = heuristic estimate from current node to goal
+#       f(n) = total estimated cost (used to pick the best move)
+#   - A* always picks the node with the LOWEST f(n) (or HIGHEST in maximizing).
 #
-# Kruskal's Algorithm:
-#   - A GREEDY algorithm that builds MST by always picking the smallest
-#     available edge that does NOT form a cycle.
-#   - Uses DISJOINT SET (Union-Find) data structure to detect cycles.
+# MINIMAX Algorithm:
+#   - A backtracking algorithm used in two-player games.
+#   - Maximizer (X = Computer) tries to MAXIMIZE the score.
+#   - Minimizer (O = Player) tries to MINIMIZE the score.
+#   - Explores all possible moves recursively to find the best one.
 #
-# STEPS:
-#   1. Sort ALL edges by weight in ascending order.
-#   2. Pick the smallest edge.
-#   3. Check if adding it forms a cycle (using Union-Find).
-#   4. If NO cycle → add edge to MST.
-#   5. If cycle → skip the edge.
-#   6. Repeat until MST has V-1 edges.
+# HOW A* IS APPLIED HERE:
+#   - g(n) = Minimax score (exact game-tree evaluation)
+#   - h(n) = Heuristic score (counts near-winning lines)
+#   - f(n) = g(n) + h(n) → Computer picks move with highest f(n)
 #
-# DISJOINT SET (Union-Find):
-#   - Data structure that tracks which vertices are in the same component.
-#   - find(i)    → returns the ROOT of i's component.
-#   - union(x,y) → merges two components.
-#   - Path Compression → makes find() faster by flattening the tree.
-#     Code: parent[i] = find(parent, parent[i])
+# BOARD POSITIONS:
+#   0 | 1 | 2
+#   ---------
+#   3 | 4 | 5
+#   ---------
+#   6 | 7 | 8
+#
+# WINNING COMBINATIONS (8 total):
+#   Rows    : [0,1,2], [3,4,5], [6,7,8]
+#   Columns : [0,3,6], [1,4,7], [2,5,8]
+#   Diagonals: [0,4,8], [2,4,6]
 #
 # =============================================================================
 # COMPLEXITY:
-#   Sorting edges   : O(E log E)
-#   Union-Find ops  : O(E α(V))  ← α = inverse Ackermann ≈ O(1) practically
-#   Overall         : O(E log E)
-#   Space           : O(V + E)
-#
-#   E = number of edges, V = number of vertices
+#   Minimax Time Complexity : O(b^d) — b=branching factor(9), d=depth(9)
+#   Space Complexity        : O(d)   — recursion depth
+#   With A* heuristic, pruning reduces unnecessary exploration.
 # =============================================================================
 #
-# KRUSKAL'S vs PRIM'S:
-# ┌─────────────────┬──────────────────────┬──────────────────────┐
-# │ Feature         │ Kruskal's            │ Prim's               │
-# ├─────────────────┼──────────────────────┼──────────────────────┤
-# │ Approach        │ Edge-based (Greedy)  │ Vertex-based (Greedy)│
-# │ Data Structure  │ Disjoint Set         │ Priority Queue       │
-# │ Works on        │ Edge list            │ Adjacency Matrix/List│
-# │ Best for        │ Sparse graphs        │ Dense graphs         │
-# │ Time Complexity │ O(E log E)           │ O(V²) or O(E log V)  │
-# │ Cycle Detection │ Union-Find           │ Visited array        │
-# └─────────────────┴──────────────────────┴──────────────────────┘
-#
-# =============================================================================
 # ORAL EXAM QUESTIONS & ANSWERS:
 # =============================================================================
 #
-# Q1. What is a Minimum Spanning Tree (MST)?
-# A1. A spanning tree that connects all vertices of a graph with the minimum
-#     possible total edge weight and contains no cycles.
-#     For V vertices, MST always has exactly V-1 edges.
+# Q1. What is the A* algorithm?
+# A1. A* is an informed search algorithm that finds the optimal path using:
+#     f(n) = g(n) + h(n)
+#     g(n) = cost from start to current node
+#     h(n) = heuristic estimate to goal
+#     f(n) = total estimated cost
 #
-# Q2. What is Kruskal's Algorithm?
-# A2. A greedy algorithm that builds MST by:
-#     1. Sorting all edges by weight (ascending).
-#     2. Picking the smallest edge that does NOT form a cycle.
-#     3. Repeating until V-1 edges are selected.
+# Q2. What is the difference between A* and Minimax?
+# A2. Minimax explores ALL possible game states to find the best move (brute force).
+#     A* uses a heuristic h(n) to guide the search more efficiently.
+#     Here, A* = Minimax (g) + Heuristic (h) combined.
 #
-# Q3. Why is Kruskal's called a Greedy algorithm?
-# A3. Because at each step it makes the locally optimal choice —
-#     always picking the minimum weight edge available —
-#     without reconsidering previous choices.
+# Q3. What is the Minimax algorithm?
+# A3. Minimax is a decision-making algorithm for two-player games.
+#     - Maximizer (X/Computer) tries to MAXIMIZE the score.
+#     - Minimizer (O/Player) tries to MINIMIZE the score.
+#     It recursively evaluates all possible moves and picks the best one.
 #
-# Q4. What data structure does Kruskal's use for cycle detection?
-# A4. Disjoint Set (Union-Find) data structure.
-#     It efficiently checks if two vertices belong to the same component.
-#     If yes → adding the edge would form a cycle → skip it.
+# Q4. What does the heuristic function calculate here?
+# A4. It counts near-winning lines:
+#     - If a line has 2 X's and 1 empty → score += 10 (X is close to winning)
+#     - If a line has 2 O's and 1 empty → score -= 10 (O is close to winning)
+#     This guides the computer to prefer positions closer to winning.
 #
-# Q5. What is a Disjoint Set (Union-Find)?
-# A5. A data structure that maintains a collection of disjoint sets.
-#     - find(i)    → returns the root/representative of i's set.
-#     - union(x,y) → merges the sets containing x and y.
-#     Used to detect cycles in Kruskal's algorithm.
+# Q5. What is g(n), h(n), and f(n) in this program?
+# A5. g(n) = Minimax score (exact evaluation of game tree)
+#     h(n) = Heuristic score (near-win line count)
+#     f(n) = g(n) + h(n) → used to select the best move
 #
-# Q6. What is Path Compression in Union-Find?
-# A6. An optimization in find() that makes every node on the path
-#     point directly to the root, flattening the tree.
-#     This speeds up future find() calls to nearly O(1).
-#     Code: parent[i] = find(parent, parent[i])
+# Q6. Why does Minimax return (10 - depth) for X winning?
+# A6. Subtracting depth rewards FASTER wins.
+#     A win in fewer moves gets a higher score than a win in more moves.
+#     This makes the computer prefer quick victories.
 #
-# Q7. How does cycle detection work?
-# A7. find(u) and find(v) return the roots of u and v.
-#     If root_u == root_v → same component → adding edge forms a cycle → skip.
-#     If root_u != root_v → different components → safe to add → call union().
+# Q7. Why does Minimax return (depth - 10) for O winning?
+# A7. Adding depth penalizes FASTER losses.
+#     A loss in more moves gets a less negative score.
+#     This makes the computer delay losses as long as possible.
 #
-# Q8. What is the time complexity of Kruskal's algorithm?
-# A8. O(E log E) — dominated by the edge sorting step.
-#     Union-Find operations are nearly O(1) with path compression.
+# Q8. What is the role of the 'is_max' parameter in Minimax?
+# A8. It determines whose turn it is:
+#     is_max = True  → Computer's turn (X) → tries to MAXIMIZE score
+#     is_max = False → Player's turn (O)   → tries to MINIMIZE score
 #
-# Q9. How many edges does an MST have?
-# A9. Always V-1 edges, where V is the number of vertices.
+# Q9. How does find_best_move() work?
+# A9. It tries every available position:
+#     1. Places X on that position
+#     2. Calls minimax() to get g(n)
+#     3. Calls heuristic() to get h(n)
+#     4. Calculates f(n) = g + h
+#     5. Picks the move with the highest f(n)
+#     6. Undoes the move (board[move] = ' ')
 #
-# Q10. What is the difference between a spanning tree and MST?
-# A10. A spanning tree connects all vertices with V-1 edges (no cycles).
-#      An MST is a spanning tree with the MINIMUM total edge weight.
+# Q10. Why do we undo the move after evaluating it?
+# A10. Because we are just SIMULATING the move to evaluate its score.
+#      The actual move is only made after finding the best one.
+#      This is called "backtracking".
 #
-# Q11. When does Kruskal's algorithm stop?
-# A11. When the MST contains V-1 edges, or all edges are processed.
+# Q11. What does check_winner() return?
+# A11. - 'X'    → if X has won
+#      - 'O'    → if O has won
+#      - 'Draw' → if board is full with no winner
+#      - None   → game is still ongoing
 #
-# Q12. Can Kruskal's work on disconnected graphs?
-# A12. Yes. It produces a Minimum Spanning FOREST —
-#      one MST per connected component.
+# Q12. What are the 8 winning combinations in Tic-Tac-Toe?
+# A12. 3 rows + 3 columns + 2 diagonals = 8 winning lines
+#      Rows: [0,1,2], [3,4,5], [6,7,8]
+#      Cols: [0,3,6], [1,4,7], [2,5,8]
+#      Diag: [0,4,8], [2,4,6]
 #
-# Q13. What is the difference between Kruskal's and Prim's?
-# A13. Kruskal's: Edge-based, sorts all edges, uses Disjoint Set,
-#                 better for SPARSE graphs. O(E log E)
-#      Prim's:    Vertex-based, grows from one vertex, uses Priority Queue,
-#                 better for DENSE graphs. O(V²) or O(E log V)
+# Q13. What is the time complexity of Minimax?
+# A13. O(b^d) where b = branching factor (max 9 moves), d = depth (max 9).
+#      Worst case = 9! = 362880 states. Manageable for Tic-Tac-Toe.
 #
-# Q14. Does Kruskal's work on directed graphs?
-# A14. No. Kruskal's is designed for UNDIRECTED weighted graphs.
+# Q14. Is this A* implementation admissible?
+# A14. The heuristic h(n) here is not strictly admissible (it can overestimate),
+#      but it works well in practice for guiding the computer to better moves.
 #
-# Q15. What is the initial state of the parent array?
-# A15. parent = [0, 1, 2, ..., n-1]
-#      Every vertex starts as its own parent (separate component).
+# Q15. What is the difference between informed and uninformed search?
+# A15. Uninformed (Blind): No knowledge of goal — BFS, DFS, UCS
+#      Informed: Uses heuristic to guide search — A*, Greedy, Best-First
 #
-# Q16. What are real-world applications of MST / Kruskal's?
-# A16. - Network design (minimum cable to connect all computers)
-#      - Road/railway construction (minimum cost to connect cities)
-#      - Electrical grid design
-#      - Cluster analysis in machine learning
+# Q16. Can the computer ever lose in this implementation?
+# A16. No. With perfect Minimax, the computer will always win or draw.
+#      It never makes a suboptimal move.
 #
-# Q17. What is the space complexity of Kruskal's?
-# A17. O(V + E) — O(V) for the parent array, O(E) for edges and MST.
+# Q17. What is backtracking in this context?
+# A17. After simulating a move and evaluating it, the move is undone
+#      (board[move] = ' '). This allows exploring all possibilities
+#      without permanently changing the board state.
 #
-# Q18. What happens if two edges have the same weight?
-# A18. Either can be picked — both are valid. The MST weight is always
-#      unique even if the structure differs.
+# Q18. What is the role of 'depth' in Minimax?
+# A18. Depth tracks how many moves deep we are in the game tree.
+#      It is used to prefer faster wins (10 - depth) and delay losses (depth - 10).
 #
 # =============================================================================
 # QUICK FIRE ANSWERS:
-#   Algorithm type?          → Greedy
-#   Data structure used?     → Disjoint Set (Union-Find)
-#   First step?              → Sort all edges by weight (ascending)
-#   Cycle detection?         → if find(u) == find(v) → cycle → skip
-#   MST edges count?         → V - 1
-#   Time complexity?         → O(E log E)
-#   Space complexity?        → O(V + E)
-#   Path compression?        → parent[i] = find(parent, parent[i])
-#   Best for?                → Sparse graphs
-#   Works on directed graph? → No, only undirected graphs
-# =============================================================================
+#   A* formula?              → f(n) = g(n) + h(n)
+#   g(n) here?               → Minimax score
+#   h(n) here?               → Heuristic (near-win line count)
+#   Computer plays as?       → X (Maximizer)
+#   Player plays as?         → O (Minimizer)
+#   Winning combos?          → 8 (3 rows + 3 cols + 2 diagonals)
+#   Minimax time complexity? → O(b^d) = O(9^9) worst case
+#   Can computer lose?       → No, Minimax is optimal
+#   Backtracking used?       → Yes, board[move] = ' ' undoes the move
+#   Board size?              → 3x3 = 9 positions (indexed 0-8)
+# =============================================================================1
