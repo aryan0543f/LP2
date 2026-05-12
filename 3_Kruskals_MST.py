@@ -17,7 +17,9 @@ def kruskal(v, edges):
     edges.sort(key=lambda x: x[2])
 
     # Step 2: Initialize each vertex as its own parent
-    parent = list(range(v))
+    # Use max vertex index + 1 to safely handle any vertex numbering
+    max_vertex = max(max(src, dst) for src, dst, _ in edges) if edges else v - 1
+    parent = list(range(max(v, max_vertex + 1)))
 
     result = []
     cost   = 0
@@ -37,24 +39,6 @@ def kruskal(v, edges):
         print(f"  {u} -- {v}  ==  {w}")
     print(f"Minimum Cost = {cost}")
 
-# ── Input ─────────────────────────────────────────────────────────────────────
-# Sample Input:
-#   Enter number of vertices: 4
-#   Enter number of edges: 5
-#   Enter edges (u v weight):
-#   0 1 10
-#   0 2 6
-#   0 3 5
-#   1 3 15
-#   2 3 4
-#
-# Expected Output:
-#   Edges in Minimum Spanning Tree:
-#     2 -- 3  ==  4
-#     0 -- 3  ==  5
-#     0 -- 1  ==  10
-#   Minimum Cost = 19
-
 vertices = int(input("Enter number of vertices: "))
 e        = int(input("Enter number of edges: "))
 
@@ -65,6 +49,141 @@ for _ in range(e):
     edges.append([u, v, w])
 
 kruskal(vertices, edges)
+# =============================================================================
+# PROBLEM STATEMENT:
+# Given a connected, undirected, weighted graph with V vertices and E edges,
+# find the Minimum Spanning Tree (MST) using Kruskal's algorithm and display
+# the selected edges along with the minimum total cost.
+# =============================================================================
+
+# ── Input ─────────────────────────────────────────────────────────────────────
+#
+# --- Input 1: 4 vertices, 5 edges ---
+#
+#       10
+#   0 ────── 1
+#   |  \     |
+#  6|   5\   |15
+#   |     \  |
+#   2 ────── 3
+#       4
+#
+#   Enter number of vertices: 4
+#   Enter number of edges: 5
+#   Enter edges (u v weight):
+#   0 1 10
+#   0 2 6
+#   0 3 5
+#   1 3 15
+#   2 3 4
+#
+#   Edges in Minimum Spanning Tree:
+#     2 -- 3  ==  4
+#     0 -- 3  ==  5
+#     0 -- 1  ==  10
+#   Minimum Cost = 19
+#
+# ------------------------------------------------------------------
+#
+# --- Input 2: 5 vertices, 7 edges ---
+#
+#       2       3
+#   0 ────── 1 ────── 2
+#   |      / |        |
+#  6|    4/  |5      1|
+#   |  /     |        |
+#   3 ────── 4 ────── 2 (back to 2)
+#       3
+#
+#   Enter number of vertices: 5
+#   Enter number of edges: 7
+#   Enter edges (u v weight):
+#   0 1 2
+#   0 3 6
+#   1 2 3
+#   1 3 4
+#   1 4 5
+#   2 4 1
+#   3 4 3
+#
+#   Edges in Minimum Spanning Tree:
+#     2 -- 4  ==  1
+#     0 -- 1  ==  2
+#     3 -- 4  ==  3
+#     1 -- 2  ==  3
+#   Minimum Cost = 9
+#
+# ------------------------------------------------------------------
+#
+# --- Input 3: 6 vertices, 8 edges ---
+#
+#       4       2
+#   0 ────── 1 ────── 2
+#   |        |      / |
+#  3|       8|    5/  |6
+#   |        |  /     |
+#   3 ────── 4 ────── 5
+#       7        9
+#
+#   Enter number of vertices: 6
+#   Enter number of edges: 8
+#   Enter edges (u v weight):
+#   0 1 4
+#   0 3 3
+#   1 2 2
+#   1 4 8
+#   2 4 5
+#   2 5 6
+#   3 4 7
+#   4 5 9
+#
+#   Edges in Minimum Spanning Tree:
+#     1 -- 2  ==  2
+#     0 -- 3  ==  3
+#     0 -- 1  ==  4
+#     2 -- 4  ==  5
+#     2 -- 5  ==  6
+#   Minimum Cost = 20
+# ------------------------------------------------------------------
+#
+# --- Input 4: 7 vertices, 12 edges (a=0, b=1, c=2, d=3, e=4, f=5, g=6) ---
+#
+#   Graph from image:
+#       d(3) ──2── e(4)
+#      / |  \        \
+#     4  1   \        10
+#    /   |    \        \
+#  a(0)──2──b(1)──7──c(2)
+#    \       |  \       |
+#     5      8   4      6
+#      \     |    \     |
+#      f(5)──1──g(6)────┘
+#
+#   Enter number of vertices: 7
+#   Enter number of edges: 12
+#   Enter edges (u v weight):
+#   0 3 4
+#   0 1 2
+#   0 5 5
+#   3 4 2
+#   3 1 1
+#   4 1 3
+#   4 2 10
+#   1 2 7
+#   1 5 8
+#   1 6 4
+#   5 6 1
+#   6 2 6
+#
+#   Edges in Minimum Spanning Tree:
+#     5 -- 6  ==  1
+#     3 -- 1  ==  1
+#     3 -- 4  ==  2
+#     0 -- 1  ==  2
+#     4 -- 1  ==  3
+#     1 -- 6  ==  4
+#   Minimum Cost = 13
+# ------------------------------------------------------------------
 
 # =============================================================================
 # THEORY:
