@@ -47,8 +47,21 @@ if __name__ == "__main__":
     main()
 
 
+# =============================================================================
+# PROBLEM STATEMENT:
+# =============================================================================
+# Implement Depth First Search (DFS) and Breadth First Search (BFS) traversal
+# on a given graph represented as an adjacency list. Accept the graph from the
+# user (number of nodes and edges), perform both traversals starting from node 1,
+# and display the order in which nodes are visited by each algorithm.
+# Compare the traversal order to understand the difference between DFS
+# (depth-wise, uses stack/recursion) and BFS (level-wise, uses queue).
+# =============================================================================
+
 # SAMPLE INPUT/OUTPUT:
 # --------------------
+#
+# --- Input 1: Binary Tree shaped graph (7 nodes) ---
 # graph = {
 #     1 : [2, 3],
 #     2 : [4, 5],
@@ -59,8 +72,55 @@ if __name__ == "__main__":
 #     7 : []
 # }
 #
-# DFS Output : 1 2 4 5 3 6 7
-# BFS Output : 1 2 3 4 5 6 7
+#         1
+#        / \
+#       2   3
+#      / \ / \
+#     4  5 6  7
+#
+# DFS Output : 1 2 4 5 3 6 7   (goes deep into left branch first)
+# BFS Output : 1 2 3 4 5 6 7   (visits level by level)
+#
+# ------------------------------------------------------------------
+#
+# --- Input 2: Linear chain graph (5 nodes) ---
+# graph = {
+#     1 : [2],
+#     2 : [3],
+#     3 : [4],
+#     4 : [5],
+#     5 : []
+# }
+#
+#   1 → 2 → 3 → 4 → 5
+#
+# DFS Output : 1 2 3 4 5
+# BFS Output : 1 2 3 4 5
+# (Both same for linear chain — no branching)
+#
+# ------------------------------------------------------------------
+#
+# --- Input 3: Graph with multiple branches (6 nodes) ---
+# graph = {
+#     1 : [2, 3, 4],
+#     2 : [5],
+#     3 : [5],
+#     4 : [],
+#     5 : [6],
+#     6 : []
+# }
+#
+#       1
+#     / | \
+#    2  3  4
+#    \  /
+#     5
+#     |
+#     6
+#
+# DFS Output : 1 2 5 6 3 4
+# BFS Output : 1 2 3 4 5 6
+# ------------------------------------------------------------------
 
 # =============================================================================
 # PROGRAM: Depth First Search (DFS) and Breadth First Search (BFS)
