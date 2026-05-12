@@ -133,6 +133,101 @@ while True:
         print("You win!" if result == 'O' else "It's a draw!")
         break
 # =============================================================================
+# ## Summary
+# This Tic-Tac-Toe AI uses A* search (f(n) = g(n) + h(n)) to pick the best
+# move. The minimax() function calculates g(n) — the true cost from exploring
+# the full game tree. The heuristic() function calculates h(n) — an estimate
+# of how winning the position is. Combined, they guide the computer to choose
+# moves that are both strategically sound and promising.
+#
+# ## Deep Dive
+#
+# ### The Game State Representation
+# The board is a simple list of 9 cells, where board[0] is top-left and
+# board[8] is bottom-right:
+#   0 | 1 | 2
+#   --+---+--
+#   3 | 4 | 5
+#   --+---+--
+#   6 | 7 | 8
+#
+# WIN_LINES defines all 8 winning combinations — think of it as the rulebook.
+# Every check for a winner simply checks if any of these triplets all match.
+#
+# ### The Heuristic h(n) — "How Good Is This Position?"
+#
+#   def heuristic(board):
+#       score = 0
+#       for a, b, c in WIN_LINES:
+#           line = [board[a], board[b], board[c]]
+#           if line.count('X') == 2 and line.count(' ') == 1:
+#               score += 10   # X is one step from winning
+#           if line.count('O') == 2 and line.count(' ') == 1:
+#               score -= 10   # O is one step from winning
+#       return score
+#
+# This is a look-ahead estimate. If X has two in a row with one empty space,
+# that's worth +10 points — X is *almost* winning. If O has the same setup,
+# that's -10 — danger for the computer.
+#
+# Real-world analogy: Think of it like a chess player glancing at the board
+# and thinking "if I move my knight here, I'm threatening their queen" —
+# quick estimation without calculating every line of play.
+#
+# ### The Minimax g(n) — "What's The True Outcome?"
+#
+#   def minimax(board, depth, is_maximizing):
+#       if result == 'X': return 10 - depth   # faster win = higher score
+#       if result == 'O': return depth - 10   # faster loss = lower score
+#       if result == 'Draw': return 0
+#
+# This explores the complete game tree. If X wins at depth 3, the score is
+# 10 - 3 = 7. If X wins at depth 5, the score is 10 - 5 = 5. The computer
+# prefers faster victories.
+#   Maximizing (X): Wants the highest score — picks the best child
+#   Minimizing (O): Wants the lowest score — assumes opponent plays optimally
+#
+# Real-world analogy: This is like playing through every possible continuation
+# of a chess game to see who wins. The computer simulates: "If I play here,
+# and they play optimally, what happens?"
+#
+# ### A* Selection — Combining Both
+#
+#   def best_move(board):
+#       for i in range(9):
+#           if board[i] == ' ':
+#               board[i] = 'X'
+#               g = minimax(board, 0, False)   # true cost from minimax
+#               h = heuristic(board)           # estimated cost
+#               f = g + h                      # A* score
+#               board[i] = ' '                 # undo
+#
+# The key insight: g(n) is the ground truth from exhaustive search, while
+# h(n) is a quick heuristic. Together:
+#   f > 0  → position favors computer
+#   f < 0  → position favors player
+#   Higher f → better move for computer
+#
+# This makes the AI play strategically (it avoids positions that lead to
+# guaranteed loss) while also being opportunistic (it seizes near-winning
+# setups flagged by the heuristic).
+#
+# ### Example Trace
+# Imagine the computer evaluates position 4 (center):
+#   X | X | O
+#   --+---+--
+#   O | X |
+#   --+---+--
+#   O |   |
+#
+#   g = +8  (minimax finds winning line for X)
+#   h = +10 (X has 2 in row 0, ready to win)
+#   f = +18 ← Best move!
+#
+# The computer plays center, threatens the win, and forces the player to
+# block — demonstrating how A* combines "what will happen" with "how good
+# this looks right now."
+# =============================================================================
 # PROGRAM: Tic-Tac-Toe using A* Algorithm (with Minimax)
 # =============================================================================
 #
